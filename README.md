@@ -1,2 +1,2 @@
 # PointCloudCompression
-Codes of point cloud processing and compression
+Codes to read, process and compress point clouds
