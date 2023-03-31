@@ -17,23 +17,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.pyplot import figure
 
 
-def plot_pc(points):
-    #skip = 100   # Skip every n points
-
-    fig = plt.figure()
-    figure(figsize=(1, 1))
-    ax = fig.add_subplot(111, projection='3d')
-    #point_range = range(0, points.shape[0], 10000) # skip points to prevent crash
-    ax.scatter(points[:, 0],   # x
-               points[:, 1],   # y
-               points[:, 2],   # z
-               #c=points[point_range, 2], # height data for color
-               cmap='spectral',
-               marker="x")
-    #ax.axis('scaled')  # {equal, scaled}
-    plt.show()
-
-
 def get_decimal_positions(array):
 
     decimals, _ = np.modf(array)
