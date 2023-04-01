@@ -40,13 +40,16 @@ def calculate_binary_entropy(p1):
 
 class PointCloud():
     
-    def __init__(self, file=None):
+    def __init__(self, points=None, file=None):
         self.num_points = None
         self.sorting_order = None
         self.decimals = None
         self.slices_entropy = {'x': None, 'y': None, 'z': None}
         self.grid_dim = None
         self.are_int = False
+        if points is not None:
+            self.points = points
+            self._update()
         if file is not None:
             self.load(file)
             self._update()
@@ -92,7 +95,6 @@ class PointCloud():
             if i != 0:
                 prev = unique[i - 1]
             for _ in range(int(prev + 1), s):
-                
                 entropies.append(0)
             p1 = c / n
             entropies.append(calculate_binary_entropy(p1))
@@ -176,10 +178,61 @@ class PointCloud():
         #ax.axis('scaled')  # {equal, scaled}
         plt.show()
         
+        
+class MultiplePointClouds():
+    
+    def __init__(self, folder=None):
+        self.point_clouds = None
+        self.points = None
+        self.num_point_clouds = None
+        self.files = None
+        if folder is not None:
+            self.load(folder)
+        
+    def __str__(self):
+        return str(self.num_point_clouds) + 'point clouds'
+
+    def __repr__(self):
+        return self.__str__()
+
+    def preprocess(self, decimals=None, sorting_order=None):
+        for pc in self.point_clouds:
+            pc.preprocess(decimals, sorting_order)
+    
+    def load(self, folder):
+        if folder[-1] != '/':
+            folder += '/'
+        self.files = os.listdir(folder)
+        self.point_clouds = []
+        for f in self.files:
+            self.point_clouds.append(PointCloud(file=folder+f))
+        self.num_point_clouds = len(self.files)
+        
+    def save(self, folder, preprocess=True, decimals=None, sorting_order=None):
+        if folder[-1] != '/':
+            folder += '/'
+        digits = int(np.log10(self.num_point_clouds)) + 1
+        
+        for i, pc in enumerate(self.point_clouds):
+            if preprocess:
+                pc.preprocess(decimals, sorting_order)
+            out = 'file' + '0'*(digits - int(np.log10(i+1)) - 1) + str(i+1) + '.ply'
+            pc.save(folder+out, preprocess=True, decimals=None, sorting_order=None)
+            
+    def plot(self, create=True):
+        if create:
+            self._points = self.point_clouds[0].points
+            for pc in self.point_clouds[1:]:
+                self._points = np.append(self._points, pc.points, axis=0)
+            self._point_cloud = PointCloud(points=self._points)
+        self._point_cloud.plot()
+        
 
 
 if __name__ == '__main__':
     
-    pc = PointCloud('pc.pts')
+    #pc = PointCloud(file='pc.pts')
     #pc.save('pc.ply', sorting_order='zyx')
     
+    mpc = MultiplePointClouds('pc')
+    mpc.save('ply')
