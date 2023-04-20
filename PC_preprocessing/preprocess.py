@@ -63,8 +63,8 @@ def preprocess(input_folder,
         # Transformate points
         points = np.copy(points)
         points *= 10 ** (decimals)
-        for i in range(points.shape[1]):
-            points[:,i] -= points[:,i].min()
+        for j in range(points.shape[1]):
+            points[:, j] -= points[:, j].min()
         #points -= points.min()
         points = np.array(points, np.uint32)
 
