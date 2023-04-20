@@ -123,13 +123,13 @@ def preprocess_dataset(input_folder,
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', dest='dataset', type=bool, help='If an entire dataset has to be processed', default=False)
     parser.add_argument('--input', dest='input', type=str, help='Path of the input folder', default=os.getcwd())
     parser.add_argument('--output', dest='output', type=str, help='Path of the output folder', default='./ply')
     parser.add_argument('--sort', dest='sort', type=str, help='Sorting order')
     parser.add_argument('--decimals', dest='decimals', type=int, help='Number of decimals of the data files', default=5)
-    parser.add_argument('--info', dest='info', type=int, help='Number of decimals of the data files', default=None)
+    parser.add_argument('--info', dest='info', type=int, help='Percentage of files preprocessed needed to inform')
     parser.add_argument('--extension', dest='extension', type=str, help='Extension of the files to read', default='.pts')
+    parser.add_argument('--dataset', dest='dataset', type=bool, help='If an entire dataset has to be processed', default=False)
     args = parser.parse_args()
 
     if args.dataset:
