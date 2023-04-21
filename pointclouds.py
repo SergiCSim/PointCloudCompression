@@ -10,8 +10,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from scipy.stats import entropy
-#%matplotlib qt
+# %matplotlib qt
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.pyplot import figure
@@ -20,15 +19,16 @@ from matplotlib.pyplot import figure
 def get_decimal_positions(array):
 
     decimals, _ = np.modf(array)
-    
+
     # Convert decimal parts to strings
     decimal_strings = np.char.mod('%f', decimals).reshape((1, -1))[0]
-    
+
     # Count the number of non-zero decimal places for each number
     num_decimals = [len(s.rstrip('0').split('.')[1]) for s in decimal_strings]
-    
+
     # Return the maximum number of decimal places
     return max(num_decimals)
+
 
 def calculate_binary_entropy(p1):
     if p1 == 0 or p1 == 1:
@@ -37,83 +37,52 @@ def calculate_binary_entropy(p1):
     return - (p0 * np.log2(p0) + p1 * np.log2(p1))
 
 
-
 class PointCloud():
-    
+
     def __init__(self, points=None, file=None):
+        if type(points) is str:
+            file = points
+            points = None
         self.num_points = None
         self.sorting_order = None
         self.decimals = None
-        self.slices_entropy = {'x': None, 'y': None, 'z': None}
-        self.grid_dim = None
+
+        d = {'x': None, 'y': None, 'z': None}
+        self.points_per_slice = d.copy()
+        self.sr_per_slice = d.copy()
+        self.sr_3d = [None, None, None]
+        self.entropy_per_slice = d.copy()
+        self.sr_entropy_per_slice = d.copy()
+
         self.are_int = False
+
         if points is not None:
             self.points = points
             self._update()
         if file is not None:
             self.load(file)
-            self._update()
+            # self._update()
 
-        
     def __str__(self):
-        s = 'Point cloud with ' + str(self.num_points) + \
-        ' points in a grid of shape ' + str(self.grid_dim)
-        if self.sorting_order is not None:
-            s += ' sorted by the order ' + str(self.sorting_order[0]) + ', ' 
-            str(self.sorting_order[1]) + ', ' + str(self.sorting_order[2])
-        return s
-    
+        return 'Point cloud with ' + str(self.num_points) + ' points'
+
     def __repr__(self):
         return self.__str__()
-    
+
     def _remove_duplicates(self):
         indexes = np.unique(self.points, return_index=True, axis=0)[1]
-        self.points = np.array([self.points[index] for index in sorted(indexes)])
-        
-    def _compute_binary_entropy_by_slice(self, axis):
-        if not self.are_int:
-            return
+        self.points = np.array([self.points[index]
+                               for index in sorted(indexes)])
 
-        if axis == 'x':
-            n = self.grid_dim[1] * self.grid_dim[2]
-            ax = 0
-        elif axis == 'y':
-            n = self.grid_dim[0] * self.grid_dim[2]
-            ax = 1
-        elif axis == 'z':
-            n = self.grid_dim[0] * self.grid_dim[1]
-            ax = 2
-
-        entropies = []
-        
-        unique, counts = np.unique(self.points[:, ax], return_counts=True)
-        
-        counts_dict = dict(zip(unique, counts))
-        
-        prev = 0
-        for i, (s, c) in enumerate(counts_dict.items()):
-            if i != 0:
-                prev = unique[i - 1]
-            for _ in range(int(prev + 1), s):
-                entropies.append(0)
-            p1 = c / n
-            entropies.append(calculate_binary_entropy(p1))
-
-        self.slices_entropy[axis] = entropies
-            
     def _update(self):
         self.num_points = self.points.shape[0]
-        self.grid_dim = np.array([self.points[:, i].max() + 1 for i in range(3)])
-        self.decimals = get_decimal_positions(self.points)
-        for axis in 'xyz':
-            self._compute_binary_entropy_by_slice(axis)
-            
+
     def sort_by_coords(self, order='xyz', points=None):
         other = True
         if points is None:
             points = self.points
             other = False
-        d = {'x':0, 'y':1, 'z':2}
+        d = {'x': 0, 'y': 1, 'z': 2}
         order_list = [d[x] for x in order]
         indices = np.lexsort((points[:, order_list[2]],
                               points[:, order_list[1]],
@@ -123,116 +92,162 @@ class PointCloud():
             return points
         else:
             self.sorting_order = order
-    
-        
+
+    def compute_axis_stats(self, axis):
+        if not self.are_int:
+            return
+
+        for j in range(self.points.shape[1]):
+            self.sr_3d[j] = int(self.points[:, j].max())
+
+        self.points_per_slice[axis] = []
+        self.sr_per_slice[axis] = []
+        self.entropy_per_slice[axis] = []
+        self.sr_entropy_per_slice[axis] = []
+
+        d = {'x': 0, 'y': 1, 'z': 2}
+        ax = d[axis]
+        ax_w, ax_h = [ax for ax in d.values() if ax != d[axis]]
+
+        n = (self.sr_3d[ax_w] + 1) * (self.sr_3d[ax_h] + 1)
+
+        # For each slice:
+        for s in range(self.sr_3d[ax] + 1):
+
+            # Select the points of the slice s
+            points = self.points[self.points[:, ax] == s]
+
+            num_points = points.shape[0]
+            self.points_per_slice[axis].append(num_points)
+
+            if num_points == 0:
+                sr = ((0, 0), (0, 0))
+            else:
+                sr = ((int(points[:, ax_w].min()), int(points[:, ax_h].min())),
+                      (int(points[:, ax_w].max()), int(points[:, ax_h].max())))
+            self.sr_per_slice[axis].append(sr)
+
+            n_slice = (sr[1][0] - sr[0][0] + 1) * (sr[1][1] - sr[0][1] + 1)
+
+            entropy = calculate_binary_entropy(num_points / n)
+            self.entropy_per_slice[axis].append(entropy)
+
+            if num_points == 0:
+                sr_entropy = 0
+            else:
+                sr_entropy = calculate_binary_entropy(num_points / n_slice)
+            self.sr_entropy_per_slice[axis].append(sr_entropy)
+
+        self.points_per_slice[axis] = np.array(self.points_per_slice[axis])
+        self.sr_per_slice[axis] = np.array(self.sr_per_slice[axis])
+        self.entropy_per_slice[axis] = np.array(self.entropy_per_slice[axis])
+        self.sr_entropy_per_slice[axis] = np.array(self.sr_entropy_per_slice[axis])
+
     def preprocess(self, decimals=None, sorting_order=None):
         self.are_int = True
-        
+
         if decimals is None:
-            decimals = self.decimals
+            decimals = get_decimal_positions(self.points)
         if sorting_order is not None:
             self.sort_by_coords(sorting_order)
 
         self._remove_duplicates()
 
         self.points *= 10 ** decimals
-        for i in range(self.points.shape[1]):
-            self.points[:,i] -= self.points[:,i].min()
+        for j in range(self.points.shape[1]):
+            self.points[:, j] -= self.points[:, j].min()
         #points -= points.min()
         self.points = np.array(self.points, np.uint64)
-        
+
         self._update()
-        
+
     def load(self, file):
         df = pd.read_csv(file, delimiter=' ', header=None)
         self.points = np.array(df)[:, 0:3]
         self._update()
-        
+
     def save(self, file, preprocess=True, decimals=None, sorting_order=None):
         if preprocess:
             self.preprocess(decimals, sorting_order)
 
         if '.ply' in file:
             header = 'ply\nformat ascii 1.0\nelement vertex ' + \
-            str(self.num_points) + \
-            '\nproperty float x\nproperty float y\nproperty float z\n' + \
-            'end_header\n'
-            
+                str(self.num_points) + \
+                '\nproperty float x\nproperty float y\nproperty float z\n' + \
+                'end_header\n'
+
             with open(file, 'w') as f:
                 f.write(header)
                 np.savetxt(f, self.points, delimiter=' ', fmt='%d %d %d')
-                
-    def plot(self):
-        #skip = 100   # Skip every n points
+
+    def plot(self, skip=1):
+        # skip = 100   # Skip every n points
 
         fig = plt.figure()
         figure(figsize=(1, 1))
         ax = fig.add_subplot(111, projection='3d')
-        #point_range = range(0, points.shape[0], 10000) # skip points to prevent crash
-        ax.scatter(self.points[:, 0],   # x
-                   self.points[:, 1],   # y
-                   self.points[:, 2],   # z
-                   #c=points[point_range, 2], # height data for color
+        # skip points to prevent crash
+        point_range = range(0, self.points.shape[0], skip)
+        ax.scatter(self.points[point_range, 0],   # x
+                   self.points[point_range, 1],   # y
+                   self.points[point_range, 2],   # z
+                   # c=points[point_range, 2], # height data for color
                    cmap='spectral',
                    marker=".")
-        #ax.axis('scaled')  # {equal, scaled}
+        # ax.axis('scaled')  # {equal, scaled}
         plt.show()
-        
-        
-class MultiplePointClouds():
-    
-    def __init__(self, folder=None):
-        self.point_clouds = None
-        self.points = None
-        self.num_point_clouds = None
-        self.files = None
-        if folder is not None:
-            self.load(folder)
-        
-    def __str__(self):
-        return str(self.num_point_clouds) + 'point clouds'
 
-    def __repr__(self):
-        return self.__str__()
+    def get_info(self, df=True):
+        for axis in 'xyz':
+            self.compute_axis_stats(axis)
 
-    def preprocess(self, decimals=None, sorting_order=None):
-        for pc in self.point_clouds:
-            pc.preprocess(decimals, sorting_order)
-    
-    def load(self, folder):
-        if folder[-1] != '/':
-            folder += '/'
-        self.files = os.listdir(folder)
-        self.point_clouds = []
-        for f in self.files:
-            self.point_clouds.append(PointCloud(file=folder+f))
-        self.num_point_clouds = len(self.files)
-        
-    def save(self, folder, preprocess=True, decimals=None, sorting_order=None):
-        if folder[-1] != '/':
-            folder += '/'
-        digits = int(np.log10(self.num_point_clouds)) + 1
-        
-        for i, pc in enumerate(self.point_clouds):
-            if preprocess:
-                pc.preprocess(decimals, sorting_order)
-            out = 'file' + '0'*(digits - int(np.log10(i+1)) - 1) + str(i+1) + '.ply'
-            pc.save(folder+out, preprocess=True, decimals=None, sorting_order=None)
-            
-    def plot(self, create=True):
-        if create:
-            self._points = self.point_clouds[0].points
-            for pc in self.point_clouds[1:]:
-                self._points = np.append(self._points, pc.points, axis=0)
-            self._point_cloud = PointCloud(points=self._points)
-        self._point_cloud.plot()
-        
+        info_num_points = []
+        info_sr = []  # ???
+        info_entropy = []
+        info_sr_entropy = []
+        for axis in 'xyz':
+            info_num_points += [self.points_per_slice[axis].min(),
+                                self.points_per_slice[axis].max(),
+                                self.points_per_slice[axis].mean(),
+                                np.median(self.points_per_slice[axis])]
+            info_entropy += [self.entropy_per_slice[axis].min(),
+                             self.entropy_per_slice[axis].max(),
+                             self.entropy_per_slice[axis].mean()]
+            info_sr_entropy += [self.sr_entropy_per_slice[axis].min(),
+                                self.sr_entropy_per_slice[axis].max(),
+                                self.sr_entropy_per_slice[axis].mean()]
+
+        info = [self.sr_3d] + \
+            info_num_points + \
+            info_entropy + \
+            info_sr_entropy
+
+        if not df:
+            return info
+
+        stats = ['min', 'max', 'mean', 'median']
+        names = ['Ocup. voxels', 'Entropy', 'SR entropy']
+
+        colnames = ['3D SR']
+        for n in names:
+            for axis in 'xyz':
+                for s in stats:
+                    if not ((n == 'Entropy' or n == 'SR entropy') and
+                            s == 'median'):
+                        colnames.append(n + ' ' + axis + ' (' + s + ')')
+
+        dataframe = pd.DataFrame(columns=colnames)
+        return dataframe.append(pd.DataFrame([info], columns=colnames))
 
 
 if __name__ == '__main__':
+
+    path = '../ShapeNet/shapenetcore_partanno_v0/PartAnnotation/02691156/points/'
+    pc_path = path + '1a04e3eab45ca15dd86060f189eb133.pts'
+
+    pc = PointCloud(pc_path)
+    pc.preprocess(decimals=5)
     
-    #pc = PointCloud(file='pc.pts')
-    #pc.save('pc.ply', sorting_order='zyx')
+    print(pc.get_info())
+
     
-    mpc = MultiplePointClouds('pc')
-    mpc.save('ply')
