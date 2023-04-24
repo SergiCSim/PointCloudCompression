@@ -44,6 +44,7 @@ class PointCloud():
             file = points
             points = None
         self.num_points = None
+        self.num_empty_slices = None
         self.sorting_order = None
         self.decimals = None
 
@@ -110,6 +111,8 @@ class PointCloud():
         ax_w, ax_h = [ax for ax in d.values() if ax != d[axis]]
 
         n = (self.sr_3d[ax_w] + 1) * (self.sr_3d[ax_h] + 1)
+        
+        self.num_empty_slices = 0
 
         # For each slice:
         for s in range(self.sr_3d[ax] + 1):
@@ -119,24 +122,25 @@ class PointCloud():
 
             num_points = points.shape[0]
             self.points_per_slice[axis].append(num_points)
-
+            
             if num_points == 0:
-                sr = ((0, 0), (0, 0))
+                sr = ((np.nan, np.nan), (np.nan, np.nan))
+                self.sr_per_slice[axis].append(sr)
+                self.entropy_per_slice[axis].append(0)
+                self.sr_entropy_per_slice[axis].append(0)
+                self.num_empty_slices += 1
             else:
                 sr = ((int(points[:, ax_w].min()), int(points[:, ax_h].min())),
                       (int(points[:, ax_w].max()), int(points[:, ax_h].max())))
-            self.sr_per_slice[axis].append(sr)
+                self.sr_per_slice[axis].append(sr)
 
-            n_slice = (sr[1][0] - sr[0][0] + 1) * (sr[1][1] - sr[0][1] + 1)
+                n_slice = (sr[1][0] - sr[0][0] + 1) * (sr[1][1] - sr[0][1] + 1)
 
-            entropy = calculate_binary_entropy(num_points / n)
-            self.entropy_per_slice[axis].append(entropy)
+                entropy = calculate_binary_entropy(num_points / n)
+                self.entropy_per_slice[axis].append(entropy)
 
-            if num_points == 0:
-                sr_entropy = 0
-            else:
                 sr_entropy = calculate_binary_entropy(num_points / n_slice)
-            self.sr_entropy_per_slice[axis].append(sr_entropy)
+                self.sr_entropy_per_slice[axis].append(sr_entropy)
 
         self.points_per_slice[axis] = np.array(self.points_per_slice[axis])
         self.sr_per_slice[axis] = np.array(self.sr_per_slice[axis])
@@ -202,9 +206,10 @@ class PointCloud():
             self.compute_axis_stats(axis)
 
         info_num_points = []
-        info_sr = []  # ???
+        info_sr = []
         info_entropy = []
         info_sr_entropy = []
+
         for axis in 'xyz':
             info_num_points += [self.points_per_slice[axis].min(),
                                 self.points_per_slice[axis].max(),
@@ -216,9 +221,18 @@ class PointCloud():
             info_sr_entropy += [self.sr_entropy_per_slice[axis].min(),
                                 self.sr_entropy_per_slice[axis].max(),
                                 self.sr_entropy_per_slice[axis].mean()]
+            xb = self.sr_per_slice[axis][:, 0, 0]
+            yb = self.sr_per_slice[axis][:, 0, 1]
+            xt = self.sr_per_slice[axis][:, 1, 0]
+            yt = self.sr_per_slice[axis][:, 1, 1]
+            arrays = [xb, yb, xt, yt]
+            for a in arrays:
+                b = a[np.invert(np.isnan(a))]
+                info_sr += [b.min(), b.max(), b.mean(), np.median(b)]
 
         info = [self.sr_3d] + \
             info_num_points + \
+            info_sr + \
             info_entropy + \
             info_sr_entropy
 
@@ -226,9 +240,10 @@ class PointCloud():
             return info
 
         stats = ['min', 'max', 'mean', 'median']
-        names = ['Ocup. voxels', 'Entropy', 'SR entropy']
+        names = ['Ocup. voxels', 'Bottom hor.', 'Bottom vert.', 'Top  hor.',
+                 'Top vert.', 'Entropy', 'SR entropy']
 
-        colnames = ['3D SR']
+        colnames = ['3D SR (range)']
         for n in names:
             for axis in 'xyz':
                 for s in stats:
