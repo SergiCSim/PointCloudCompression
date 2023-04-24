@@ -201,7 +201,7 @@ class PointCloud():
         # ax.axis('scaled')  # {equal, scaled}
         plt.show()
 
-    def get_info(self, df=True):
+    def get_info(self, dic=False, df=False):
         for axis in 'xyz':
             self.compute_axis_stats(axis)
 
@@ -230,20 +230,20 @@ class PointCloud():
                 b = a[np.invert(np.isnan(a))]
                 info_sr += [b.min(), b.max(), b.mean(), np.median(b)]
 
-        info = [self.sr_3d] + \
+        info = [self.sr_3d, self.num_empty_slices] + \
             info_num_points + \
             info_sr + \
             info_entropy + \
             info_sr_entropy
 
-        if not df:
+        if not df and not dic:
             return info
-
+            
         stats = ['min', 'max', 'mean', 'median']
         names = ['Ocup. voxels', 'Bottom hor.', 'Bottom vert.', 'Top  hor.',
                  'Top vert.', 'Entropy', 'SR entropy']
 
-        colnames = ['3D SR (range)']
+        colnames = ['3D SR (range)', 'Empty slices']
         for n in names:
             for axis in 'xyz':
                 for s in stats:
@@ -251,8 +251,11 @@ class PointCloud():
                             s == 'median'):
                         colnames.append(n + ' ' + axis + ' (' + s + ')')
 
-        dataframe = pd.DataFrame(columns=colnames)
-        return dataframe.append(pd.DataFrame([info], columns=colnames))
+        if df:
+            dataframe = pd.DataFrame(columns=colnames)
+            return dataframe.append(pd.DataFrame([info], columns=colnames))
+        
+        return {c: x for c, x in zip(colnames, info)}
 
 
 if __name__ == '__main__':
@@ -263,6 +266,6 @@ if __name__ == '__main__':
     pc = PointCloud(pc_path)
     pc.preprocess(decimals=5)
     
-    print(pc.get_info())
+    print(pc.get_info(dic=True))
 
     
