@@ -10,6 +10,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
+import open3d as o3d
 # %matplotlib qt
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -44,14 +45,16 @@ class PointCloud():
             file = points
             points = None
         self.num_points = None
-        self.num_empty_slices = None
+        self.bit_depth = None
         self.sorting_order = None
         self.decimals = None
 
         d = {'x': None, 'y': None, 'z': None}
-        self.points_per_slice = d.copy()
+        self.prop_empty_slices = d.copy()
         self.sr_per_slice = d.copy()
         self.sr_3d = [None, None, None]
+        self.prop_empty_slices = [None, None, None]
+        self.points_per_slice = d.copy()
         self.entropy_per_slice = d.copy()
         self.sr_entropy_per_slice = d.copy()
 
@@ -77,6 +80,7 @@ class PointCloud():
 
     def _update(self):
         self.num_points = self.points.shape[0]
+        self.bit_depth = int(np.log2(self.points.max()) + 1)
 
     def sort_by_coords(self, order='xyz', points=None):
         other = True
@@ -112,7 +116,7 @@ class PointCloud():
 
         n = (self.sr_3d[ax_w] + 1) * (self.sr_3d[ax_h] + 1)
         
-        self.num_empty_slices = 0
+        self.prop_empty_slices[d[axis]] = 0
 
         # For each slice:
         for s in range(self.sr_3d[ax] + 1):
@@ -128,7 +132,7 @@ class PointCloud():
                 self.sr_per_slice[axis].append(sr)
                 self.entropy_per_slice[axis].append(0)
                 self.sr_entropy_per_slice[axis].append(0)
-                self.num_empty_slices += 1
+                self.prop_empty_slices[d[axis]] += 1
             else:
                 sr = ((int(points[:, ax_w].min()), int(points[:, ax_h].min())),
                       (int(points[:, ax_w].max()), int(points[:, ax_h].max())))
@@ -142,6 +146,7 @@ class PointCloud():
                 sr_entropy = calculate_binary_entropy(num_points / n_slice)
                 self.sr_entropy_per_slice[axis].append(sr_entropy)
 
+        self.prop_empty_slices[d[axis]] /= (self.sr_3d[ax] + 1)
         self.points_per_slice[axis] = np.array(self.points_per_slice[axis])
         self.sr_per_slice[axis] = np.array(self.sr_per_slice[axis])
         self.entropy_per_slice[axis] = np.array(self.entropy_per_slice[axis])
@@ -164,11 +169,24 @@ class PointCloud():
         self.points = np.array(self.points, np.uint64)
 
         self._update()
+        
+    def run_frl(self):
+        assert self.are_int, 'Not integer values. Point cloud may not be preprocessed'
+        # TODO
 
     def load(self, file):
-        df = pd.read_csv(file, delimiter=' ', header=None)
-        self.points = np.array(df)[:, 0:3]
+        extension = file.split('.')[-1]
+        if extension == 'ply':
+            pcd = o3d.io.read_point_cloud(file)
+            # Convert point cloud to NumPy array
+            self.points = np.asarray(pcd.points)
+        elif extension == 'pts' or extension == 'txt':
+            df = pd.read_csv(file, delimiter=' ', header=None)
+            self.points = np.array(df)[:, 0:3]
+        else:
+            raise Exception('File type not supported')
         self._update()
+        
 
     def save(self, file, preprocess=True, decimals=None, sorting_order=None):
         if preprocess:
@@ -230,11 +248,11 @@ class PointCloud():
                 b = a[np.invert(np.isnan(a))]
                 info_sr += [b.min(), b.max(), b.mean(), np.median(b)]
 
-        info = [self.sr_3d, self.num_empty_slices] + \
-            info_num_points + \
-            info_sr + \
-            info_entropy + \
-            info_sr_entropy
+        info = self.sr_3d + [self.bit_depth] + self.prop_empty_slices + \
+               info_num_points + \
+               info_sr + \
+               info_entropy + \
+               info_sr_entropy
 
         if not df and not dic:
             return info
@@ -243,7 +261,8 @@ class PointCloud():
         names = ['Ocup. voxels', 'Bottom hor.', 'Bottom vert.', 'Top  hor.',
                  'Top vert.', 'Entropy', 'SR entropy']
 
-        colnames = ['3D SR (range)', 'Empty slices']
+        colnames = ['Range x', 'Range y', 'Range z', 'Bit depth',
+                    'Prop. empty sl. x', 'Prop. empty sl. y', 'Prop. empty sl. z']
         for n in names:
             for axis in 'xyz':
                 for s in stats:
@@ -259,13 +278,20 @@ class PointCloud():
 
 
 if __name__ == '__main__':
-
+    """
     path = '../ShapeNet/shapenetcore_partanno_v0/PartAnnotation/02691156/points/'
     pc_path = path + '1a04e3eab45ca15dd86060f189eb133.pts'
 
     pc = PointCloud(pc_path)
+    #pc.run_frl()
     pc.preprocess(decimals=5)
     
     print(pc.get_info(dic=True))
-
+    """
     
+    path = 'a.pts'
+    pc = PointCloud(path)
+    pc.are_int = True
+    pc.preprocess()
+    print(pc.get_info(dic=True))
+
