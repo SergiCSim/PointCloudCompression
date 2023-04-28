@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import argparse
 import pandas as pd
 import numpy as np
@@ -31,7 +32,6 @@ def preprocess(input_folder,
     prepares and transforms them to .ply format to be compressed using FRL"""
 
     # Take all the file names
-    #print(os.listdir('/'.join(output_folder.split('/')[0:-1])))
     #if 'ply' not in os.listdir('/'.join(output_folder.split('/')[0:-1])):
     #    raise FileNotFoundError
     files = [f for f in os.listdir(input_folder) if f.endswith(extension)]
@@ -74,7 +74,6 @@ def preprocess(input_folder,
         header = 'ply\nformat ascii 1.0\nelement vertex ' + str(len(points)) + \
                  '\nproperty float x\nproperty float y\nproperty float z\n' + \
                  'end_header\n'
-
         with open(output_folder+'/'+out, 'w') as f:
             f.write(header)
             np.savetxt(f, points, delimiter=' ', fmt='%d %d %d')
@@ -96,7 +95,6 @@ def preprocess_dataset(input_folder,
                        info=None,
                        sorting_order=None,
                        extension='.pts'):
-    #print(os.walk(dataset_folder))
     for root, dirs, files in os.walk(input_folder):
         relative_path = os.path.relpath(root, input_folder)
         new_folder = os.path.join(output_folder, relative_path)
@@ -118,6 +116,19 @@ def preprocess_dataset(input_folder,
             print('Nothing to preprocess here')
             print('---------------------------------------------------------\n')
 
+def select_sample(input_folder, output_folder, num_files, extension='.ply'):
+    for i, folder in enumerate(os.listdir(input_folder)):
+        files = np.array(os.listdir(input_folder + '/' + folder))
+        indexes = np.random.choice(files.shape[0], size=num_files, replace=False)
+        selected_files = files[indexes]
+        #os.makedirs(output_folder + '/' + folder, exist_ok=True)
+        for j, file in enumerate(selected_files):
+            new_name = 'folder' + str(i + 1) + '-' + folder + '_file' + str(j + 1) + extension
+            shutil.copyfile(input_folder + '/' + folder + '/' + file,
+                            #output_folder + '/' + folder + '/' + new_name)
+                            output_folder + '/' + new_name)
+
+
 
 
 if __name__ == '__main__':
@@ -130,7 +141,14 @@ if __name__ == '__main__':
     parser.add_argument('--info', dest='info', type=int, help='Percentage of files preprocessed needed to inform')
     parser.add_argument('--extension', dest='extension', type=str, help='Extension of the files to read', default='.pts')
     parser.add_argument('--dataset', dest='dataset', type=bool, help='If an entire dataset has to be processed', default=False)
+    parser.add_argument('--sample', dest='sample', type=bool, help='If a sample wants to be selected', default=False)
+    parser.add_argument('--n', dest='n', type=int, help='Number of files to select from each folder', default=3)
     args = parser.parse_args()
+
+    if args.sample:
+        select_sample(input_folder=args.input,
+                      output_folder=args.output,
+                      num_files=args.n)
 
     if args.dataset:
         preprocess_dataset(input_folder=args.input,
