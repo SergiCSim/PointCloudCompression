@@ -117,7 +117,7 @@ def preprocess_dataset(input_folder,
             print('---------------------------------------------------------\n')
 
 def select_sample(input_folder, output_folder, num_files, extension='.ply'):
-    folders = os.listdir(input_folder)
+    folders = sorted(os.listdir(input_folder))
     folder_digits = int(np.log10(len(folders))) + 1
     file_digits = int(np.log10(num_files)) + 1
     for i, folder in enumerate(folders):
@@ -129,7 +129,8 @@ def select_sample(input_folder, output_folder, num_files, extension='.ply'):
         for j, file in enumerate(selected_files):
             str_zeros_file = '0'*(file_digits - int(np.log10(j + 1)) - 1)
             new_name = 'folder' + str_zeros_folder + str(i + 1) + '-' + folder \
-                       + '_file' + str_zeros_file + str(j + 1) + extension
+                       + '_file' + str_zeros_file + str(j + 1) + '_' + file \
+                       + '_' + extension
             shutil.copyfile(input_folder + '/' + folder + '/' + file,
                             #output_folder + '/' + folder + '/' + new_name)
                             output_folder + '/' + new_name)
