@@ -117,13 +117,19 @@ def preprocess_dataset(input_folder,
             print('---------------------------------------------------------\n')
 
 def select_sample(input_folder, output_folder, num_files, extension='.ply'):
-    for i, folder in enumerate(os.listdir(input_folder)):
+    folders = os.listdir(input_folder)
+    folder_digits = int(np.log10(len(folders))) + 1
+    file_digits = int(np.log10(num_files)) + 1
+    for i, folder in enumerate(folders):
+        str_zeros_folder = '0'*(folder_digits - int(np.log10(i + 1)) - 1)
         files = np.array(os.listdir(input_folder + '/' + folder))
         indexes = np.random.choice(files.shape[0], size=num_files, replace=False)
         selected_files = files[indexes]
         #os.makedirs(output_folder + '/' + folder, exist_ok=True)
         for j, file in enumerate(selected_files):
-            new_name = 'folder' + str(i + 1) + '-' + folder + '_file' + str(j + 1) + extension
+            str_zeros_file = '0'*(file_digits - int(np.log10(j + 1)) - 1)
+            new_name = 'folder' + str_zeros_folder + str(i + 1) + '-' + folder \
+                       + '_file' + str_zeros_file + str(j + 1) + extension
             shutil.copyfile(input_folder + '/' + folder + '/' + file,
                             #output_folder + '/' + folder + '/' + new_name)
                             output_folder + '/' + new_name)
