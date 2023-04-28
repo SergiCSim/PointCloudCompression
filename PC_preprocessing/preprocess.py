@@ -129,8 +129,8 @@ def select_sample(input_folder, output_folder, num_files, extension='.ply'):
         for j, file in enumerate(selected_files):
             str_zeros_file = '0'*(file_digits - int(np.log10(j + 1)) - 1)
             new_name = 'folder' + str_zeros_folder + str(i + 1) + '-' + folder \
-                       + '_file' + str_zeros_file + str(j + 1) + '_' + file \
-                       + '_' + extension
+                       + '_file' + str_zeros_file + str(j + 1) + '_(' + file \
+                       + ')_' + extension
             shutil.copyfile(input_folder + '/' + folder + '/' + file,
                             #output_folder + '/' + folder + '/' + new_name)
                             output_folder + '/' + new_name)
