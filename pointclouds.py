@@ -115,42 +115,59 @@ class PointCloud():
         ax_w, ax_h = [ax for ax in d.values() if ax != d[axis]]
 
         n = (self.sr_3d[ax_w] + 1) * (self.sr_3d[ax_h] + 1)
-        
+
         self.prop_empty_slices[d[axis]] = 0
 
-        # For each slice:
-        for s in range(self.sr_3d[ax] + 1):
+        unique, counts = np.unique(self.points[:, ax], return_counts=True)
+
+        counts_dict = dict(zip(unique, counts))
+
+        for s in range(int(unique[0])):
+            print('s', s)
+            #points = self.points[self.points[:, ax] == s]
+            sr = ((np.nan, np.nan), (np.nan, np.nan))
+            self.sr_per_slice[axis].append(sr)
+            self.entropy_per_slice[axis].append(0)
+            self.sr_entropy_per_slice[axis].append(0)
+            self.points_per_slice[axis].append(0)
+
+
+        prev = 0
+        for i, (s, c) in enumerate(counts_dict.items()):
+            if i != 0:
+                prev = unique[i - 1]
+            for _ in range(int(prev + 1), int(s)):
+                sr = ((np.nan, np.nan), (np.nan, np.nan))
+                self.sr_per_slice[axis].append(sr)
+                self.entropy_per_slice[axis].append(0)
+                self.sr_entropy_per_slice[axis].append(0)
+                self.points_per_slice[axis].append(0)
 
             # Select the points of the slice s
             points = self.points[self.points[:, ax] == s]
 
             num_points = points.shape[0]
             self.points_per_slice[axis].append(num_points)
-            
-            if num_points == 0:
-                sr = ((np.nan, np.nan), (np.nan, np.nan))
-                self.sr_per_slice[axis].append(sr)
-                self.entropy_per_slice[axis].append(0)
-                self.sr_entropy_per_slice[axis].append(0)
-                self.prop_empty_slices[d[axis]] += 1
-            else:
-                sr = ((int(points[:, ax_w].min()), int(points[:, ax_h].min())),
-                      (int(points[:, ax_w].max()), int(points[:, ax_h].max())))
-                self.sr_per_slice[axis].append(sr)
 
-                n_slice = (sr[1][0] - sr[0][0] + 1) * (sr[1][1] - sr[0][1] + 1)
+            sr = ((int(points[:, ax_w].min()), int(points[:, ax_h].min())),
+                  (int(points[:, ax_w].max()), int(points[:, ax_h].max())))
+            self.sr_per_slice[axis].append(sr)
 
-                entropy = calculate_binary_entropy(num_points / n)
-                self.entropy_per_slice[axis].append(entropy)
+            n_slice = (sr[1][0] - sr[0][0] + 1) * (sr[1][1] - sr[0][1] + 1)
 
-                sr_entropy = calculate_binary_entropy(num_points / n_slice)
-                self.sr_entropy_per_slice[axis].append(sr_entropy)
+            entropy = calculate_binary_entropy(num_points / n)
+            self.entropy_per_slice[axis].append(entropy)
 
-        self.prop_empty_slices[d[axis]] /= (self.sr_3d[ax] + 1)
+            sr_entropy = calculate_binary_entropy(num_points / n_slice)
+            self.sr_entropy_per_slice[axis].append(sr_entropy)
+
+        self.prop_empty_slices[d[axis]] = (self.sr_3d[ax] + 1 - len(unique)) / (self.sr_3d[ax] + 1)
         self.points_per_slice[axis] = np.array(self.points_per_slice[axis])
         self.sr_per_slice[axis] = np.array(self.sr_per_slice[axis])
         self.entropy_per_slice[axis] = np.array(self.entropy_per_slice[axis])
         self.sr_entropy_per_slice[axis] = np.array(self.sr_entropy_per_slice[axis])
+
+
 
     def preprocess(self, decimals=None, sorting_order=None):
         self.are_int = True
@@ -169,7 +186,7 @@ class PointCloud():
         self.points = np.array(self.points, np.uint64)
 
         self._update()
-        
+
     def run_frl(self):
         assert self.are_int, 'Not integer values. Point cloud may not be preprocessed'
         # TODO
@@ -186,7 +203,7 @@ class PointCloud():
         else:
             raise Exception('File type not supported')
         self._update()
-        
+
 
     def save(self, file, preprocess=True, decimals=None, sorting_order=None):
         if preprocess:
@@ -256,7 +273,7 @@ class PointCloud():
 
         if not df and not dic:
             return info
-            
+
         stats = ['min', 'max', 'mean', 'median']
         names = ['Ocup. voxels', 'Bottom hor.', 'Bottom vert.', 'Top  hor.',
                  'Top vert.', 'Entropy', 'SR entropy']
@@ -273,25 +290,24 @@ class PointCloud():
         if df:
             dataframe = pd.DataFrame(columns=colnames)
             return dataframe.append(pd.DataFrame([info], columns=colnames))
-        
+
         return {c: x for c, x in zip(colnames, info)}
 
 
 if __name__ == '__main__':
-    """
+
     path = '../ShapeNet/shapenetcore_partanno_v0/PartAnnotation/02691156/points/'
     pc_path = path + '1a04e3eab45ca15dd86060f189eb133.pts'
 
     pc = PointCloud(pc_path)
-    #pc.run_frl()
     pc.preprocess(decimals=5)
-    
+
     print(pc.get_info(dic=True))
+
     """
-    
     path = 'a.pts'
     pc = PointCloud(path)
     pc.are_int = True
     pc.preprocess()
     print(pc.get_info(dic=True))
-
+    """
