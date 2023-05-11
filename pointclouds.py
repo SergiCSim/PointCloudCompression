@@ -80,7 +80,11 @@ class PointCloud():
 
     def _update(self):
         self.num_points = self.points.shape[0]
-        self.bit_depth = int(np.log2(self.points.max()) + 1)
+        max_val = self.points.max()
+        if max_val == 0:
+            self.bit_depth = 0
+        else:
+            self.bit_depth = int(np.log2(max_val) + 1)
 
     def sort_by_coords(self, order='xyz', points=None):
         other = True
@@ -288,8 +292,8 @@ class PointCloud():
                         colnames.append(n + ' ' + axis + ' (' + s + ')')
 
         if df:
-            dataframe = pd.DataFrame(columns=colnames)
-            return dataframe.append(pd.DataFrame([info], columns=colnames))
+            return pd.DataFrame([info], columns=colnames)
+            #return dataframe.append(pd.DataFrame([info], columns=colnames))
 
         return {c: x for c, x in zip(colnames, info)}
 
