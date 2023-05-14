@@ -44,16 +44,19 @@ $$
 For each axis, its range is its maximum value. That is:
 
 * **Range x:**
+
 $$
 \text{max} X
 $$
 
 * **Range y:**
+
 $$
 \text{max} Y
 $$
 
 * **Range z:**
+
 $$
 \text{max} Z
 $$
@@ -63,6 +66,7 @@ $$
 The bit depth is a unique value which represents the minimum number of bits needed to represent each value of the point cloud. Mathematically:
 
 * **Bit depth:** 
+
 $$
 \lfloor 1 + \log_2 \text{max} \{\text{max} X, \text{max} Y, \text{max} Z \} \rfloor
 $$
@@ -72,16 +76,19 @@ $$
 The proportion of empty slices, for each axis, is the number of slices across this axis with no points divided by the total number of slices. Or, in other words, one minus the proportion of slices with, at least, one point.
 
 * **Prop. empty sl. x:**
+
 $$
 1 - \frac{ \big| \{ S_x^{(i)} : | S_x^{(i)}| > 0\} \big|}{\text{max} X}
 $$
 
 * **Prop. empty sl. y:**
+
 $$
 1 - \frac{\big| \{ S_y^{(j)} : | S_y^{(j)}| > 0\} \big|}{\text{max} Y}
 $$
 
 * **Prop. empty sl. z:**
+
 $$
 1 - \frac{\big| \{ S_z^{(k)} : | S_z^{(k)}| > 0\} \big|}{\text{max} Z}
 $$
