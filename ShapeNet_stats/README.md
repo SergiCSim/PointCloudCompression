@@ -11,12 +11,15 @@ P = \{ (x_n, y_n, z_n) \in \mathbb{N_0^3} \}_{n=1, \dots, N},
 $$
 
 and, for each axis,
+
 $$
 X = \{ x_n\}_{n=1, \dots, N}
 $$
+
 $$
 Y = \{ y_n\}_{n=1, \dots, N}
 $$
+
 $$
 Z = \{ z_n\}_{n=1, \dots, N}
 $$
