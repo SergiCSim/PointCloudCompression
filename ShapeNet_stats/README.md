@@ -7,39 +7,39 @@ Before explaining what each column means, some concepts and definitions need to 
 A preprocessed point cloud can be represented as a set of $N$ points
 
 $$
-P = \{ (x_n, y_n, z_n) \in \mathbb{N_0^3} \}_{n=1, \dots, N},
+P = \\{ (x_n, y_n, z_n) \in \mathbb{N_0^3} \\}_{n=1, \dots, N},
 $$
 
 and, for each axis,
 
 $$
-X = \{ x_n\}_{n=1, \dots, N}
+X = \\{ x_n\\}_{n=1, \dots, N}
 $$
 
 $$
-Y = \{ y_n\}_{n=1, \dots, N}
+Y = \\{ y_n\\}_{n=1, \dots, N}
 $$
 
 $$
-Z = \{ z_n\}_{n=1, \dots, N}
+Z = \\{ z_n\\}_{n=1, \dots, N}
 $$
 
 We can also define mathematically the $i$-th slice across the x axis, for $i=1, \dots, \text{max} X$ as
 
 $$
-S_x^{(i)} = \{ (x_n, y_n, z_n) \in P : x_n = i \}_{n=1, \dots, N}
+S_x^{(i)} = \\{ (x_n, y_n, z_n) \in P : x_n = i \\}_{n=1, \dots, N}
 $$
 
  the $j$-th slice across the y axis, for $j=1, \dots, \text{max} Y$ as
 
 $$
-S_y^{(j)} = \{ (x_n, y_n, z_n) \in P : y_n = j \}_{n=1, \dots, N}
+S_y^{(j)} = \\{ (x_n, y_n, z_n) \in P : y_n = j \\}_{n=1, \dots, N}
 $$
 
 and the $k$-th slice across the z axis, for $k=1, \dots, \text{max} Z$ as
 
 $$
-S_z^{(k)} = \{ (x_n, y_n, z_n) \in P : z_n = k \}_{n=1, \dots, N}.
+S_z^{(k)} = \\{ (x_n, y_n, z_n) \in P : z_n = k \\}_{n=1, \dots, N}.
 $$
 
 ### Ranges:
@@ -71,7 +71,7 @@ The bit depth is a unique value which represents the minimum number of bits need
 * **Bit depth:** 
 
 $$
-\lfloor 1 + \log_2 \text{max} \{\text{max} X, \text{max} Y, \text{max} Z \} \rfloor
+\lfloor 1 + \log_2 \text{max} \\{\text{max} X, \text{max} Y, \text{max} Z \\} \rfloor
 $$
 
 ###  Proportions of empty slices:
@@ -81,20 +81,22 @@ The proportion of empty slices, for each axis, is the number of slices across th
 * **Prop. empty sl. x:**
 
 $$
-1 - \frac{ \big| \{ S_x^{(i)} : | S_x^{(i)}| > 0\} \big|}{\text{max} X}
+1 - \frac{ \big| \\{ S_x^{(i)} : | S_x^{(i)}| > 0\\} \big|}{\text{max} X}
 $$
 
 * **Prop. empty sl. y:**
 
 $$
-1 - \frac{\big| \{ S_y^{(j)} : | S_y^{(j)}| > 0\} \big|}{\text{max} Y}
+1 - \frac{\big| \\{ S_y^{(j)} : | S_y^{(j)}| > 0\\} \big|}{\text{max} Y}
 $$
 
 * **Prop. empty sl. z:**
 
 $$
-1 - \frac{\big| \{ S_z^{(k)} : | S_z^{(k)}| > 0\} \big|}{\text{max} Z}
+1 - \frac{\big| \\{ S_z^{(k)} : | S_z^{(k)}| > 0\\} \big|}{\text{max} Z},
 $$
+
+where $|A| = \text{card} A = \\# A$ is the cardinality of the set $A$.
 
 ### Number of occupied voxels
 
