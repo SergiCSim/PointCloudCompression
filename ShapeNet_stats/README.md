@@ -143,6 +143,7 @@ $$
 $$
 
 * **(Bottom hor. z, Bottom vert. z)** for each slice $k=1, \dots, \text{max} Z$ across the z axis:
+
 $$
 (x_{bl}^{(k)}, y_{bl}^{(k)})
 $$
@@ -160,6 +161,7 @@ $$
 $$
 
 * **(Top hor. z, Top vert. z)** for each slice $k=1, \dots, \text{max} Z$ across the z axis:
+
 $$
 (x_{tr}^{(k)}, y_{tr}^{(k)})
 $$
